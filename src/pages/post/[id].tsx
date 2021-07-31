@@ -4,6 +4,9 @@ import ReactMarkdown from "react-markdown"
 import Layout from "../../components/Layout"
 import { PostProps } from "../../components/Post"
 import prisma from '../../lib/prisma'
+import axios from "axios"
+import Router from "next/router"
+import { useSession } from "next-auth/client"
 
 export const getServerSideProps: GetServerSideProps = async ({ params }) => {
   const post = await prisma.post.findUnique({
@@ -12,7 +15,7 @@ export const getServerSideProps: GetServerSideProps = async ({ params }) => {
     },
     include: {
       author: {
-        select: { name: true }
+        select: { name: true, email: true }
       }
     }
   })
@@ -21,7 +24,29 @@ export const getServerSideProps: GetServerSideProps = async ({ params }) => {
   }
 }
 
+async function publishPost(id: number): Promise<void> {
+  await axios({
+    method: 'PUT',
+    url: `http://localhost:3000/api/publish/${id}`
+  })
+  await Router.push('/')
+}
+
+async function deletePost(id: Number): Promise<void> {
+  await axios({
+    method: 'DELETE',
+    url: `http://localhost:3000/api/post/${id}`
+  })
+  Router.push('/')
+}
+
 const Post: React.FC<PostProps> = (props) => {
+  const [session, loading] = useSession()
+  if(loading) {
+    return <div>Authenticating...</div>
+  }
+  const userHasValidSession = Boolean(session)
+  const postBelongsToUser = session?.user?.email === props.author?.email
   let title = props.title
   if (!props.published) {
     title = `${title} (Draft)`
@@ -33,6 +58,12 @@ const Post: React.FC<PostProps> = (props) => {
         <h2>{title}</h2>
         <p>By {props?.author?.name || "Unknown author"}</p>
         <ReactMarkdown>{props.content}</ReactMarkdown>
+        {!props.published && userHasValidSession && postBelongsToUser && (
+          <button onClick={() => publishPost(props.id)}>Publish</button>
+        )}
+        {userHasValidSession && postBelongsToUser && (
+          <button onClick={() => deletePost(props.id)}>Delete</button>
+        )}
       </div>
       <style jsx>{`
         .page {
