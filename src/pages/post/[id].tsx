@@ -27,7 +27,7 @@ export const getServerSideProps: GetServerSideProps = async ({ params }) => {
 async function publishPost(id: number): Promise<void> {
   await axios({
     method: 'PUT',
-    url: `http://localhost:3000/api/publish/${id}`
+    url: `/api/publish/${id}`
   })
   await Router.push('/')
 }
@@ -35,7 +35,7 @@ async function publishPost(id: number): Promise<void> {
 async function deletePost(id: Number): Promise<void> {
   await axios({
     method: 'DELETE',
-    url: `http://localhost:3000/api/post/${id}`
+    url: `/api/post/${id}`
   })
   Router.push('/')
 }
